@@ -5,6 +5,7 @@ Release:    1
 Group:      TO_BE/FILLED_IN
 License:    TO BE FILLED IN
 Source0:    %{name}-%{version}.tar.gz
+Source1001: packaging/capi-web-favorites.manifest 
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(db-util)
@@ -30,6 +31,7 @@ Requires: %{name} = %{version}-%{release}
 
 
 %build
+cp %{SOURCE1001} .
 cmake . -DCMAKE_INSTALL_PREFIX=/usr
 
 
@@ -45,9 +47,11 @@ rm -rf %{buildroot}
 
 
 %files
+%manifest capi-web-favorites.manifest
 %{_libdir}/libcapi-web-favorites.so
 
 %files devel
+%manifest capi-web-favorites.manifest
 %{_includedir}/web/*.h
 %{_libdir}/pkgconfig/*.pc
 
