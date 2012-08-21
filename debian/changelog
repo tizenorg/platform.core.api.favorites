@@ -1,25 +1,6 @@
-capi-web-favorites (0.0.3) unstable; urgency=low
-
-  * Git: api/favorites
-  * Tag: capi-web-favorites_0.0.3
-
-  * Applying modification to fix miss typing and some wrong settings.
-
- -- Sangpyo Kim <sangpyo7.kim@samsung.com>  Thu, 15 Mar 2012 17:42:44 +0900
-
-capi-web-favorites (0.0.2) unstable; urgency=low
-
-  * Git: api/favorites
-  * Tag: capi-web-favorites_0.0.2
-
-  * moving location of history database file
-  * SO versioning fixed
-
- -- Sangpyo Kim <sangpyo7.kim@samsung.com>  Fri, 17 Feb 2012 15:23:59 +0900
-
 capi-web-favorites (0.0.1) unstable; urgency=low
 
-  * Git: api/favorites
+  * Git: framework/api/favorites
   * Tag: capi-web-favorites_0.0.1
   * first upload
 
