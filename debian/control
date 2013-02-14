@@ -1,0 +1,22 @@
+
+Source: capi-web-favorites
+Section: libs
+Priority: extra
+Uploaders: Sangpyo Kim <sangpyo7.kim@samsung.com>, Inbum Chang <ibchang@samsung.com>
+Maintainer: Sangpyo Kim <sangpyo7.kim@samsung.com>, Inbum Chang <ibchang@samsung.com>
+Build-Depends: debhelper (>= 5), dlog-dev, libslp-db-util-dev, libsqlite3-dev, libevas-dev(>=0.1), capi-base-common-dev
+
+Package: capi-web-favorites
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Internet Bookmark and history control API
+
+Package: capi-web-favorites-dev
+Architecture: any
+Depends:  ${shlibs:Depends}, ${misc:Depends}, capi-web-favorites(= ${Source-Version}), capi-base-common-dev
+Description: Internet Bookmark and history control API for Developer
+
+Package: capi-web-favorites-dbg
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, capi-web-favorites(= ${Source-Version})
+Description: Internet Bookmark and history control API (unstripped)
