@@ -20,7 +20,7 @@
 #include <favorites.h>
 #include <favorites_private.h>
 
-__thread sqlite3 *gl_internet_bookmark_db = 0;
+sqlite3 *gl_internet_bookmark_db = 0;
 
 /* Private Functions */
 void _favorites_close_bookmark_db(void)
@@ -143,7 +143,7 @@ int _favorites_bookmark_get_folderID(const char *foldername)
 	memset(&query, 0x00, sizeof(char)*1024);
 
 	/* If there is no identical folder name, create new folder */
-	if (_favorites_bookmark_is_folder_exist(foldername)==0){
+	if (_get_exists_folder(foldername, _get_root_folder_id())==0){
 		if(_favorites_bookmark_create_folder(foldername)!=1){
 			FAVORITES_LOGE("folder creating is failed.");
 			return -1;
@@ -176,49 +176,6 @@ int _favorites_bookmark_get_folderID(const char *foldername)
 	}
 	_favorites_close_bookmark_db();
 	return 1;
-}
-
-int _favorites_bookmark_is_folder_exist(const char *foldername)
-{
-	FAVORITES_LOGE("\n");
-	int nError;
-	sqlite3_stmt *stmt;
-	char	query[1024];
-
-	memset(&query, 0x00, sizeof(char)*1024);
-
-	if (!foldername || (strlen(foldername) <= 0)) {
-		FAVORITES_LOGE("foldername is empty\n");
-		return -1;
-	}
-	FAVORITES_LOGE("foldername: %s", foldername);
-
-	if (_favorites_open_bookmark_db() < 0) {
-		FAVORITES_LOGE("db_util_open is failed\n");
-		return -1;
-	}
-
-	sprintf(query, "select id from bookmarks where type=1 AND title='%s'"
-			, foldername);
-
-	/* check foldername in the bookmark table */
-	nError = sqlite3_prepare_v2(gl_internet_bookmark_db,query
-			       ,-1, &stmt, NULL);
-
-	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
-		_favorites_finalize_bookmark_db(stmt);
-		return -1;
-	}
-
-	nError = sqlite3_step(stmt);
-	if (nError == SQLITE_ROW) {
-		/* The given foldername is exist on the bookmark table */
-		_favorites_finalize_bookmark_db(stmt);
-		return 1;
-	}
-	_favorites_close_bookmark_db();
-	return 0;
 }
 
 int _favorites_bookmark_create_folder(const char *foldername)
@@ -270,49 +227,6 @@ int _favorites_bookmark_create_folder(const char *foldername)
 	}
 	FAVORITES_LOGE("sqlite3_step is failed");
 	_favorites_close_bookmark_db();
-	return 0;
-}
-
-int _favorites_bookmark_is_bookmark_exist
-	(const char *url, const char *title, const int folderId)
-{
-	FAVORITES_LOGE("folderId: %d", folderId);
-	int nError;
-	sqlite3_stmt *stmt;
-	char	query[1024];
-
-	memset(&query, 0x00, sizeof(char)*1024);
-		
-	if (_favorites_open_bookmark_db() < 0) {
-		FAVORITES_LOGE("db_util_open is failed\n");
-		return -1;
-	}
-
-	sprintf(query, "select id from bookmarks where \
-			type=0 AND address='%s' AND title='%s' AND parent=%d"
-			, url, title, folderId);
-	FAVORITES_LOGE("query: %s", query);
-
-	/* check bookmark in the bookmark table */
-	nError = sqlite3_prepare_v2(gl_internet_bookmark_db,query
-			       ,-1, &stmt, NULL);
-
-	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
-		_favorites_finalize_bookmark_db(stmt);
-		return -1;
-	}
-
-	nError = sqlite3_step(stmt);
-	if (nError == SQLITE_ROW) {
-		/* There is same bookmark exist. */
-		_favorites_finalize_bookmark_db(stmt);
-		return 1;
-	}
-
-	FAVORITES_LOGE("there is no identical bookmark\n");
-	_favorites_close_bookmark_db();
-	/* there is no identical bookmark*/
 	return 0;
 }
 
@@ -671,39 +585,399 @@ int _favorites_get_unixtime_from_datetime(char *datetime)
 	return 1;
 }
 
-/* search last of sequence(order's index) */
-int _favorites_bookmark_get_bookmark_id(const char *url, const char *title, const int folder_id)
+int _add_bookmark(const char *title, const char *address, int parent_id, int *saved_bookmark_id)
 {
+	FAVORITES_LOGD("");
+	if (title == NULL || strlen(title) <= 0) {
+		FAVORITES_LOGD("Invalid param: Title is empty");
+		return FAVORITES_ERROR_INVALID_PARAMETER;
+	}
+	if (address == NULL || strlen(address) <= 0) {
+		FAVORITES_LOGD("Invalid param: Address is empty");
+		return FAVORITES_ERROR_INVALID_PARAMETER;
+	}
+	if (memcmp(address, "file://", 7) == 0) {
+		FAVORITES_LOGD("Not Allow file://");
+		return FAVORITES_ERROR_INVALID_PARAMETER;
+	}
+
+	if (parent_id > 0) {
+		/* check whether folder is exist or not. */
+		if (_get_exists_id(parent_id, 1) <= 0) {
+			FAVORITES_LOGE("Not found parent folder (%d)\n", parent_id);
+			return FAVORITES_ERROR_NO_SUCH_FILE;
+		}
+	} else {
+		parent_id = _get_root_folder_id();
+	}
+	FAVORITES_LOGD("[%s][%s][%d]", title, address, parent_id);
+
+	int uid = _get_exists_bookmark(address);
+	/* ignore this call.. already exist. */
+	if (uid > 0) {
+		FAVORITES_LOGE("Bookmark is already exist. cancel the add operation.");
+		return FAVORITES_ERROR_ITEM_ALREADY_EXIST;
+	}
+
+	int lastIndex = _favorites_get_bookmark_lastindex(parent_id);
+	if (lastIndex < 0) {
+		FAVORITES_LOGE("Database::getLastIndex() is failed.\n");
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
 	int nError;
 	sqlite3_stmt *stmt;
-	char	query[1024];
 
-	/* Get the id of bookmark */
-	sprintf(query, "select id from bookmarks where \
-			type=0 AND address='%s' AND title='%s' AND parent=%d"
-			, url, title, folder_id);
-	FAVORITES_LOGE("query: %s", query);
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+					"INSERT INTO bookmarks (type, parent, address, title, creationdate,\
+					updatedate, editable, sequence)\
+					VALUES (0, ?, ?, ?, DATETIME('now'), DATETIME('now'), 1, ?)",
+			       -1, &stmt, NULL);
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	/*parent */
+	if (sqlite3_bind_int(stmt, 1, parent_id) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	/*address */
+	if (sqlite3_bind_text(stmt, 2, address, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	/*title */
+	if (sqlite3_bind_text(stmt, 3, title, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	/* order */
+	if (lastIndex >= 0) {
+		if (sqlite3_bind_int(stmt, 4, (lastIndex + 1)) != SQLITE_OK) {
+			FAVORITES_LOGE("sqlite3_bind_int is failed.\n");
+			_favorites_finalize_bookmark_db(stmt);
+			return FAVORITES_ERROR_DB_FAILED;
+		}
+	}
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_OK || nError == SQLITE_DONE) {
+		_favorites_close_bookmark_db();
+		int id = _get_bookmark_id(address);
+		if (id > 0)
+			*saved_bookmark_id = id;
+		return FAVORITES_ERROR_NONE;
+	}
+	FAVORITES_LOGE("sqlite3_step is failed");
+	_favorites_close_bookmark_db();
+	return FAVORITES_ERROR_DB_FAILED;
+}
+
+int _add_folder(const char *title, int parent_id, int *saved_folder_id)
+{
+	FAVORITES_LOGD("");
+	if (title == NULL || strlen(title) <= 0) {
+		FAVORITES_LOGD("Invalid param: Title is empty");
+		return FAVORITES_ERROR_INVALID_PARAMETER;
+	}
+	if (parent_id > 0) {
+		/* check whether folder is exist or not. */
+		if (_get_exists_id(parent_id, 1) <= 0) {
+			FAVORITES_LOGE("Not found parent folder (%d)\n", parent_id);
+			return FAVORITES_ERROR_NO_SUCH_FILE;
+		}
+	} else {
+		parent_id = _get_root_folder_id();
+	}
+	FAVORITES_LOGD("[%s][%d]", title, parent_id);
+
+	int uid = _get_exists_folder(title, parent_id);
+	/* ignore this call.. already exist. */
+	if (uid > 0) {
+		FAVORITES_LOGE("Bookmark is already exist. cancel the add operation.");
+		return FAVORITES_ERROR_ITEM_ALREADY_EXIST;
+	}
+
+	int lastIndex = _favorites_get_bookmark_lastindex(parent_id);
+	if (lastIndex < 0) {
+		FAVORITES_LOGE("Database::getLastIndex() is failed.\n");
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	int nError;
+	sqlite3_stmt *stmt;
+
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+					"INSERT INTO bookmarks (type, parent, title, creationdate,\
+					updatedate, sequence, editable)\
+					VALUES (1, ?, ?, DATETIME('now'), DATETIME('now'), ?, 1)",
+			       -1, &stmt, NULL);
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	/*parent */
+	if (sqlite3_bind_int(stmt, 1, parent_id) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	/*title */
+	if (sqlite3_bind_text(stmt, 2, title, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	/* order */
+	if (lastIndex >= 0) {
+		if (sqlite3_bind_int(stmt, 3, (lastIndex + 1)) != SQLITE_OK) {
+			FAVORITES_LOGE("sqlite3_bind_int is failed.\n");
+			_favorites_finalize_bookmark_db(stmt);
+			return FAVORITES_ERROR_DB_FAILED;
+		}
+	}
+
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_OK || nError == SQLITE_DONE) {
+		_favorites_finalize_bookmark_db(stmt);
+		int id = _get_folder_id(title, parent_id);
+		if (id > 0)
+			*saved_folder_id = id;
+		return FAVORITES_ERROR_NONE;
+	}
+	FAVORITES_LOGE("sqlite3_step is failed");
+	_favorites_close_bookmark_db();
+	return FAVORITES_ERROR_DB_FAILED;
+}
+
+
+int _get_root_folder_id(void)
+{
+	return 1;
+}
+
+int _get_exists_id(int id, int type)
+{
+	FAVORITES_LOGE("\n");
+	int nError;
+	sqlite3_stmt *stmt;
+
+	if (id < 0)
+		return -1;
 
 	if (_favorites_open_bookmark_db() < 0) {
 		FAVORITES_LOGE("db_util_open is failed\n");
 		return -1;
 	}
 
-	nError = sqlite3_prepare_v2(gl_internet_bookmark_db,
-				query, -1, &stmt, NULL);
+	/* same title  */
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+			       "select * from bookmarks where id=? and type=?",
+			       -1, &stmt, NULL);
 
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+	if (sqlite3_bind_int(stmt, 1, id) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int is failed.");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+	if (sqlite3_bind_int(stmt, 2, type) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int is failed.");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_ROW) {
+		/* The given foldername is exist on the bookmark table */
+		_favorites_finalize_bookmark_db(stmt);
+		return 1;
+	}
+
+	_favorites_close_bookmark_db();
+	return 0;
+}
+
+int _get_exists_bookmark(const char *address)
+{
+	FAVORITES_LOGD("");
+	int nError;
+	sqlite3_stmt *stmt;
+
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return -1;
+	}
+	/* same title  */
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+			       "select * from bookmarks where address=? and type=0",
+			       -1, &stmt, NULL);
+
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.");
 		_favorites_finalize_bookmark_db(stmt);
 		return -1;
 	}
 
-	if ((nError = sqlite3_step(stmt)) == SQLITE_ROW) {
-		int bookmark_id = sqlite3_column_int(stmt, 0);
+	if (sqlite3_bind_text(stmt, 1, address, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
 		_favorites_finalize_bookmark_db(stmt);
-		return bookmark_id;
+		return -1;
 	}
-	FAVORITES_LOGE("No match with given url");
+
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_ROW) {
+		_favorites_finalize_bookmark_db(stmt);
+		return 1;
+	}
+	_favorites_close_bookmark_db();
+	return 0;
+}
+
+int _get_exists_folder(const char *title, int parent_id)
+{
+	FAVORITES_LOGD("");
+	int nError;
+	sqlite3_stmt *stmt;
+
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return -1;
+	}
+	/* same title  */
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+			       "select * from bookmarks where title=? and parent=? and type=1",
+			       -1, &stmt, NULL);
+
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	if (sqlite3_bind_text(stmt, 1, title, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	if (sqlite3_bind_int(stmt, 2, parent_id) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_ROW) {
+		_favorites_finalize_bookmark_db(stmt);
+		return 1;
+	}
+	_favorites_close_bookmark_db();
+	return 0;
+}
+
+int _get_bookmark_id(const char *address)
+{
+	FAVORITES_LOGE("");
+	int nError;
+	sqlite3_stmt *stmt;
+
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return -1;
+	}
+	/* same title  */
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+			       "select id from bookmarks where address=? and type=0",
+			       -1, &stmt, NULL);
+
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	if (sqlite3_bind_text(stmt, 1, address, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_ROW) {
+		int id = sqlite3_column_int(stmt, 0);
+		_favorites_finalize_bookmark_db(stmt);
+		return id;
+	}
+	_favorites_close_bookmark_db();
+	return 0;
+}
+
+int _get_folder_id(const char *title, const int parent)
+{
+
+	FAVORITES_LOGE("");
+	int nError;
+	sqlite3_stmt *stmt;
+
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return -1;
+	}
+	/* same title  */
+	nError =
+	    sqlite3_prepare_v2(gl_internet_bookmark_db,
+			       "SELECT id FROM bookmarks WHERE title=? AND parent=? AND type=1",
+			       -1, &stmt, NULL);
+
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	if (sqlite3_bind_text(stmt, 1, title, -1, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_text is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+	if (sqlite3_bind_int(stmt, 2, parent) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return -1;
+	}
+
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_ROW) {
+		int id = sqlite3_column_int(stmt, 0);
+		_favorites_finalize_bookmark_db(stmt);
+		return id;
+	}
 	_favorites_close_bookmark_db();
 	return 0;
 }
@@ -711,9 +985,38 @@ int _favorites_bookmark_get_bookmark_id(const char *url, const char *title, cons
 /*************************************************************
  *	APIs for Internet favorites
  *************************************************************/
+int favorites_bookmark_get_root_folder_id(int *root_id)
+{
+	if (!root_id)
+		return FAVORITES_ERROR_INVALID_PARAMETER;
+
+	*root_id = _get_root_folder_id();
+	return FAVORITES_ERROR_NONE;
+}
+
 int favorites_bookmark_add_bookmark(const char *url, const char *title, const char *foldername, int *bookmark_id)
 {
 	FAVORITES_LOGE("");
+#if 1
+	int ret = 0;
+	int root_id = 1;
+	int folder_id = 1;
+
+	if (!foldername || (strlen(foldername) <= 0)) {
+		FAVORITES_LOGE("foldername is empty. id is now root.\n");
+		folder_id = _get_root_folder_id();
+	} else {
+		FAVORITES_LOGE("adding folder\n");
+		ret = favorites_bookmark_add(foldername, url, root_id, 1, &folder_id);
+		if (ret != FAVORITES_ERROR_NONE) {
+			if (ret == FAVORITES_ERROR_ITEM_ALREADY_EXIST) {
+				folder_id = _get_folder_id(foldername, _get_root_folder_id());
+			} else
+				return ret;
+		}
+	}
+	return favorites_bookmark_add(title, url, folder_id, 0, bookmark_id);
+#else
 	int nError;
 	sqlite3_stmt *stmt;
 	int folderId = 1;
@@ -746,7 +1049,7 @@ int favorites_bookmark_add_bookmark(const char *url, const char *title, const ch
 	}
 
 	/* Check the bookmarks is already exist*/
-	if(_favorites_bookmark_is_bookmark_exist(url, title, folderId)!=0){
+	if(_get_exists_bookmark(url)!=0){
 		FAVORITES_LOGE("The bookmark is already exist.\n");
 		return FAVORITES_ERROR_ITEM_ALREADY_EXIST;
 	}
@@ -781,7 +1084,7 @@ int favorites_bookmark_add_bookmark(const char *url, const char *title, const ch
 	if (nError == SQLITE_ROW || nError == SQLITE_DONE) {
 		_favorites_finalize_bookmark_db(stmt);
 		if (bookmark_id != NULL) {
-			*bookmark_id = _favorites_bookmark_get_bookmark_id(url, title, folderId);
+			*bookmark_id = _get_bookmark_id(url);
 		}
 		return FAVORITES_ERROR_NONE;
 	}
@@ -789,6 +1092,22 @@ int favorites_bookmark_add_bookmark(const char *url, const char *title, const ch
 	_favorites_close_bookmark_db();
 
 	return FAVORITES_ERROR_DB_FAILED;
+#endif
+}
+
+int favorites_bookmark_add(const char *title, const char *url, int parent_id, int type, int *saved_id)
+{
+	FAVORITES_LOGD("");
+	int ret = 0;
+	if (type == 0) {
+		FAVORITES_LOGD("type is bookmark");
+		ret = _add_bookmark(title, url, parent_id, saved_id);
+	} else {
+		FAVORITES_LOGD("type is folder");
+		ret = _add_folder(title, parent_id, saved_id);
+	}
+
+	return ret;
 }
 
 int favorites_bookmark_get_count(int *count)
@@ -1020,6 +1339,8 @@ int favorites_bookmark_export_list(const char * file_path)
 	}
 	fputs("</DL><p>\n", fp);
 	fclose(fp);
+	_favorites_free_bookmark_list(bookmarks_list);
+	_favorites_free_bookmark_list(folders_list);
 
 	return FAVORITES_ERROR_NONE;
 }
@@ -1079,12 +1400,84 @@ int favorites_bookmark_get_favicon(int id, Evas *evas, Evas_Object **icon)
 			evas_object_image_alpha_set(*icon,EINA_TRUE);
 			evas_object_image_data_set(*icon, favicon->data);
 		}
+		free(favicon);
 		_favorites_finalize_bookmark_db(stmt);
 		return FAVORITES_ERROR_NONE;
 	}
 
 	_favorites_close_bookmark_db();
 	return FAVORITES_ERROR_NONE;
+}
+
+int favorites_bookmark_set_favicon(int bookmark_id, Evas_Object *icon)
+{
+	FAVORITES_INVALID_ARG_CHECK(bookmark_id<0);
+	FAVORITES_NULL_ARG_CHECK(icon);
+
+	int nError;
+	sqlite3_stmt *stmt;
+	int icon_w = 0;
+	int icon_h = 0;
+	int stride = 0;
+	int icon_length = 0;
+	void *icon_data = (void *)evas_object_image_data_get(icon, EINA_TRUE);
+	evas_object_image_size_get(icon, &icon_w, &icon_h);
+	stride = evas_object_image_stride_get(icon);
+	icon_length = icon_h * stride;
+	FAVORITES_LOGD("favicon size  w:%d, h:%d, stride: %d", icon_w, icon_h, stride);
+
+	if (_favorites_open_bookmark_db() < 0) {
+		FAVORITES_LOGE("db_util_open is failed\n");
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	nError = sqlite3_prepare_v2(gl_internet_bookmark_db,
+				"UPDATE bookmarks SET favicon=?,\
+				favicon_length=?, favicon_w=?, favicon_h=? \
+				WHERE id=?", -1, &stmt, NULL);
+
+	if (nError != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	// bind
+	if (sqlite3_bind_blob(stmt, 1, icon_data , icon_length, NULL) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_blob(icon_data) is failed");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	if (sqlite3_bind_int(stmt, 2, icon_length) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int(icon_length) is failed");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	if (sqlite3_bind_int(stmt, 3, icon_w) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int(icon_w) is failed");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	if (sqlite3_bind_int(stmt, 4, icon_h) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int(icon_h) is failed");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+	if (sqlite3_bind_int(stmt, 5, bookmark_id) != SQLITE_OK) {
+		FAVORITES_LOGE("sqlite3_bind_int(bookmark_id) is failed");
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_DB_FAILED;
+	}
+
+	nError = sqlite3_step(stmt);
+	if (nError == SQLITE_ROW || nError == SQLITE_DONE) {
+		_favorites_finalize_bookmark_db(stmt);
+		return FAVORITES_ERROR_NONE;
+	}
+
+	FAVORITES_LOGE("sqlite3_step is failed");
+	_favorites_close_bookmark_db();
+	return FAVORITES_ERROR_DB_FAILED;
 }
 
 int favorites_bookmark_delete_bookmark(int id)

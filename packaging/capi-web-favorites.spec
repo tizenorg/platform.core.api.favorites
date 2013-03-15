@@ -1,6 +1,6 @@
 Name:       capi-web-favorites
 Summary:    Internet bookmark and history API
-Version:    0.0.7
+Version:    0.0.11
 Release:    1
 Group:      TO_BE/FILLED_IN
 License:    Apache License, Version 2.0
@@ -30,13 +30,10 @@ Requires: %{name} = %{version}-%{release}
 
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=/usr
-
-
+%cmake .
 make %{?jobs:-j%jobs}
 
 %install
-rm -rf %{buildroot}
 %make_install
 
 %post
@@ -46,19 +43,65 @@ mkdir -p /opt/usr/dbspace/
 if [ ! -f /opt/usr/dbspace/.browser-history.db ];
 then
 	sqlite3 /opt/usr/dbspace/.browser-history.db 'PRAGMA journal_mode=PERSIST;
-	CREATE TABLE history(id INTEGER PRIMARY KEY AUTOINCREMENT, address, title, counter INTEGER, visitdate DATETIME, favicon BLOB, favicon_length INTEGER, favicon_w INTEGER, favicon_h INTEGER);'
+	CREATE TABLE history(
+		id INTEGER PRIMARY KEY AUTOINCREMENT
+		, address
+		, title
+		, counter INTEGER
+		, visitdate DATETIME
+		, favicon BLOB
+		, favicon_length INTEGER
+		, favicon_w INTEGER
+		, favicon_h INTEGER
+		, snapshot BLOB
+		, snapshot_stride INTEGER
+		, snapshot_w INTEGER
+		, snapshot_h INTEGER);'
 fi
 
 ### Bookmark ###
 if [ ! -f /opt/usr/dbspace/.internet_bookmark.db ];
 then
 	sqlite3 /opt/usr/dbspace/.internet_bookmark.db 'PRAGMA journal_mode=PERSIST;
-	CREATE TABLE bookmarks(id INTEGER PRIMARY KEY AUTOINCREMENT, type INTEGER, parent INTEGER, address, title, creationdate, sequence INTEGER, updatedate, visitdate, editable INTEGER, accesscount INTEGER, favicon BLOB, favicon_length INTEGER, favicon_w INTEGER, favicon_h INTEGER);
+	CREATE TABLE bookmarks(
+		id INTEGER PRIMARY KEY AUTOINCREMENT
+		,type INTEGER
+		,parent INTEGER
+		,address
+		,title
+		,creationdate
+		,sequence INTEGER
+		,updatedate
+		,visitdate
+		,editable INTEGER
+		,accesscount INTEGER
+		,favicon BLOB
+		,favicon_length INTEGER
+		,favicon_w INTEGER
+		,favicon_h INTEGER
+		,created_date
+		,account_name
+		,account_type
+		,thumbnail BLOB
+		,thumbnail_length INTEGER
+		,thumbnail_w INTEGER
+		,thumbnail_h INTEGER
+		,version INTEGER
+		,sync
+		,tag1
+		,tag2
+		,tag3
+		,tag4
+	);
 	create index idx_bookmarks_on_parent_type on bookmarks(parent, type);
 
-	insert into bookmarks (type, parent, title, creationdate, editable, sequence, accesscount) values(1, 0, "Bookmarks", DATETIME("now"),  0, 1, 0);'
-fi
+	INSERT INTO bookmarks (type, parent, title, creationdate, editable, sequence, accesscount, created_date)
+	VALUES(1, 0, "Bookmarks", DATETIME("now"),  0, 1, 0, strftime("%s","now")*1000);
 
+	CREATE TABLE tags(
+		tag
+	);'
+fi
 # Change db file owner & permission
 chown :5000 /opt/usr/dbspace/.browser-history.db
 chown :5000 /opt/usr/dbspace/.browser-history.db-journal
@@ -93,5 +136,3 @@ vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; U; Tizen 2.0;
 %files devel
 %{_includedir}/web/*.h
 %{_libdir}/pkgconfig/*.pc
-
-

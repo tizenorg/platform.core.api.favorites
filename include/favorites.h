@@ -37,7 +37,9 @@ typedef enum favorites_error{
 	FAVORITES_ERROR_NONE			= TIZEN_ERROR_NONE,              /**< Successful */
 	FAVORITES_ERROR_INVALID_PARAMETER	= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
 	FAVORITES_ERROR_DB_FAILED		= TIZEN_ERROR_WEB_CLASS | 0x62,  /**< Database operation failure */
-	FAVORITES_ERROR_ITEM_ALREADY_EXIST	= TIZEN_ERROR_WEB_CLASS | 0x63 /**< Requested data already exists */
+	FAVORITES_ERROR_ITEM_ALREADY_EXIST	= TIZEN_ERROR_WEB_CLASS | 0x63,  /**< Requested data already exists */
+	FAVORITES_ERROR_NO_SUCH_FILE	= TIZEN_ERROR_NO_SUCH_FILE, /**< No such file or directory */
+	FAVORITES_ERROR_UNKNOWN 	= TIZEN_ERROR_UNKNOWN  /**< Unknown error */
 } favorites_error_e;
 
 /**
@@ -76,14 +78,26 @@ typedef struct {
 typedef bool (*favorites_bookmark_foreach_cb)(favorites_bookmark_entry_s *item, void *user_data);
 
 /**
- * @brief       Adds an entry to bookmark list.
+ * @brief       Gets the id of the root folder.
  *
- * @remarks  If a folder named @a "foldername" doesn't exist, it will be created.
- * @remarks  The folder named "Bookmarks" is reserved for the root folder.
- * @param[in]	url	Book URL
+ * @param[out]	root_folder_id	The id of the root folder.
+ *
+ * @return  0 on success, otherwise a negative error value.
+ * @retval  #FAVORITES_ERROR_NONE        Successful
+ * @retval  #FAVORITES_ERROR_DB_FAILED   Database failed
+ * @retval  #FAVORITES_ERROR_INVALID_PARAMETER   Invalid parameter
+ *
+ */
+int favorites_bookmark_get_root_folder_id(int *root_id);
+
+/**
+ * @brief       Adds a bookmark to bookmark database.
+ *
+ * @remarks  If a folder named @a "foldername" doesn't exist, it will be created in the root folder.
+ * @param[in]	url	Bookmark URL
  * @param[in]	title	The title of the bookmark
- * @param[in]	folder_name The name of parent folder
- * @param[out]	bookmark_id: The unique id of the added bookmark
+ * @param[in]	folder_name	The name of parent folder in the root folder
+ * @param[out]	saved_id	The unique id of the added bookmark
  *
  * @return  0 on success, otherwise a negative error value.
  * @retval  #FAVORITES_ERROR_NONE        Successful
@@ -92,7 +106,26 @@ typedef bool (*favorites_bookmark_foreach_cb)(favorites_bookmark_entry_s *item, 
  * @retval  #FAVORITES_ERROR_ITEM_ALREADY_EXIST	Requested data already exists
  *
  */
-int favorites_bookmark_add_bookmark(const char *url, const char *title, const char *folder_name, int *bookmark_id);
+int favorites_bookmark_add_bookmark(const char *url, const char *title, const char *folder_name, int *saved_id);
+
+/**
+ * @brief       Adds a bookmark or folder item  to bookmark database.
+ *
+ * @remarks  If the parent_id is not valid folder id, this API will return error.
+ * @param[in]	title	The title of the bookmark or folder
+ * @param[in]	url	The bookmark URL. if the type is folder, this param will be ignored.
+ * @param[in]	parent_id	The unique id of folder which added item belong to.
+ * @param[in]	type	The type of item ( 0 : bookmark, 1 : folder )
+ * @param[out]	saved_id	 The unique id of the added item
+ *
+ * @return  0 on success, otherwise a negative error value.
+ * @retval  #FAVORITES_ERROR_NONE        Successful
+ * @retval  #FAVORITES_ERROR_DB_FAILED   Database failed
+ * @retval  #FAVORITES_ERROR_INVALID_PARAMETER   Invalid parameter
+ * @retval  #FAVORITES_ERROR_ITEM_ALREADY_EXIST	Requested data already exists
+ *
+ */
+int favorites_bookmark_add(const char *title, const char *url, int parent_id, int type, int *saved_id);
 
 /**
  * @brief       Deletes the bookmark item of given bookmark id.
@@ -176,6 +209,20 @@ int favorites_bookmark_export_list(const char *file_path);
  *
  */
 int favorites_bookmark_get_favicon(int bookmark_id, Evas *evas, Evas_Object **icon);
+
+/**
+ * @brief       Sets the bookmark's favicon
+ *
+ * @param[in]   bookmark_id	The unique ID of bookmark
+ * @param[in]   icon	The favicon object to save
+ *
+ * @return  0 on success, otherwise a negative error value.
+ * @retval  #FAVORITES_ERROR_NONE                Successful
+ * @retval  #FAVORITES_ERROR_INVALID_PARAMETER   Invalid parameter
+ * @retval  #FAVORITES_ERROR_DB_FAILED           Database failed
+ *
+ */
+int favorites_bookmark_set_favicon(int bookmark_id, Evas_Object *icon);
 
 /**
  * @brief   The structure of history entry in search results.

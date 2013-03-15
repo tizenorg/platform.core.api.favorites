@@ -110,15 +110,20 @@ void _favorites_free_bookmark_list(bookmark_list_h m_list);
 int _favorites_free_bookmark_entry(favorites_bookmark_entry_s *entry);
 int _favorites_get_bookmark_lastindex(int locationId);
 int _favorites_bookmark_get_folderID(const char *foldername);
-int _favorites_bookmark_is_folder_exist(const char *foldername);
 int _favorites_bookmark_create_folder(const char *foldername);
-int _favorites_bookmark_is_bookmark_exist(const char *url, const char *title, const int folderId);
 int _favorites_get_bookmark_count_at_folder(int folderId);
 int _favorites_bookmark_get_folder_count(void);
 bookmark_list_h _favorites_get_bookmark_list_at_folder(int folderId);
 bookmark_list_h _favorites_bookmark_get_folder_list(void);
 int _favorites_get_unixtime_from_datetime(char *datetime);
-int _favorites_bookmark_get_bookmark_id(const char *url, const char *title, const int folder_id);
+int _add_bookmark(const char *title, const char *address, int parent_id, int *saved_bookmark_id);
+int _add_folder(const char *title, int parent_id, int *saved_folder_id);
+int _get_root_folder_id(void);
+int _get_exists_id(int id, int type);
+int _get_exists_bookmark(const char *address);
+int _get_exists_folder(const char *title, int parent_id);
+int _get_bookmark_id(const char *address);
+int _get_folder_id(const char *title, const int parent);
 
 /* history internal API */
 void _favorites_history_db_close(void);

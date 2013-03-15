@@ -20,7 +20,7 @@
 #include <favorites.h>
 #include <favorites_private.h>
 
-__thread sqlite3 *gl_internet_history_db = 0;
+sqlite3 *gl_internet_history_db = 0;
 
 #define INTERNET_HISTORY_DB_NAME "/opt/usr/dbspace/.browser-history.db"
 
