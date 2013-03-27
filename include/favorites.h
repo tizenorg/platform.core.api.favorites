@@ -123,6 +123,7 @@ int favorites_bookmark_add_bookmark(const char *url, const char *title, const ch
  * @retval  #FAVORITES_ERROR_DB_FAILED   Database failed
  * @retval  #FAVORITES_ERROR_INVALID_PARAMETER   Invalid parameter
  * @retval  #FAVORITES_ERROR_ITEM_ALREADY_EXIST	Requested data already exists
+ * @retval  #FAVORITES_ERROR_NO_SUCH_FILE	parent_id is not valid
  *
  */
 int favorites_bookmark_add(const char *title, const char *url, int parent_id, int type, int *saved_id);
