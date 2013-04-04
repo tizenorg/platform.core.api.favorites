@@ -95,9 +95,6 @@ then
 	);
 	create index idx_bookmarks_on_parent_type on bookmarks(parent, type);
 
-	INSERT INTO bookmarks (type, parent, title, creationdate, editable, sequence, accesscount, created_date)
-	VALUES(1, 0, "Bookmarks", DATETIME("now"),  0, 1, 0, strftime("%s","now")*1000);
-
 	CREATE TABLE tags(
 		tag
 	);'

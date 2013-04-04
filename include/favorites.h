@@ -53,14 +53,14 @@ typedef enum favorites_error{
 typedef struct {
 	char* address;	/**< Bookmark URL */
 	char* title;	/**< The title of the bookmark */
-	char* creation_date;	/**< The date of creation */
-	char* update_date;	/**< The last updated date */
-	char* visit_date;	/**< The last visit date */
+	char* creation_date;	/**< The date of creation(yyyy-mm-dd hh:mm:ss) */
+	char* update_date;	/**< The last updated date(yyyy-mm-dd hh:mm:ss) */
+	char* visit_date;	/**< The last visit date(yyyy-mm-dd hh:mm:ss) */
 	int id;	/**< The unique ID of bookmark */
-	bool is_folder;	/**< property bookmark or folder\n @c true: folder, @c false: bookmark */
+	bool is_folder;	/**< property bookmark or folder\n @c 1: folder, @c 0: bookmark */
 	int folder_id;	/**< The ID of parent folder */
 	int order_index;	/**< The order index of bookmarks when show the list at the browser */
-	bool editable;	/**< The flag of editability\n @c true : writable, @c false: read-only, not ediable */
+	bool editable;	/**< The flag of editability\n @c 1 : writable, @c 0: read-only, not ediable */
 } favorites_bookmark_entry_s;
 
 /**

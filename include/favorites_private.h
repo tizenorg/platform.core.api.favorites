@@ -24,21 +24,11 @@ extern "C" {
 /**********************************************
  * Logging macro
  **********************************************/
-#define FAVORITES_LOGD(fmt, args...) LOGD(\
-		"[%s: %s: %d] "fmt, (rindex(__FILE__, '/')? rindex(__FILE__, '/') + 1 : __FILE__),\
-		__FUNCTION__, __LINE__, ##args)
-#define FAVORITES_LOGI(fmt, args...) LOGI(\
-		"[%s: %s: %d] "fmt, (rindex(__FILE__, '/') ? rindex(__FILE__, '/') + 1 : __FILE__),\
-		__FUNCTION__, __LINE__, ##args)
-#define FAVORITES_LOGW(fmt, args...) LOGW(\
-		"[%s: %s: %d] "fmt, (rindex(__FILE__, '/') ? rindex(__FILE__, '/') + 1 : __FILE__),\
-		__FUNCTION__, __LINE__, ##args)
-#define FAVORITES_LOGE(fmt, args...) LOGE(\
-		"[%s: %s: %d] "fmt, (rindex(__FILE__, '/') ? rindex(__FILE__, '/') + 1 : __FILE__),\
-		__FUNCTION__, __LINE__, ##args)
-#define FAVORITES_LOGE_IF(cond, fmt, args...) LOGE_IF(cond,\
-		"[%s: %s: %d] "fmt, (rindex(__FILE__, '/') ? rindex(__FILE__, '/') + 1 : __FILE__),\
-		__FUNCTION__, __LINE__, ##args)
+#define FAVORITES_LOGD(fmt, args...) LOGD(fmt, ##args)
+#define FAVORITES_LOGI(fmt, args...) LOGI(fmt, ##args)
+#define FAVORITES_LOGW(fmt, args...) LOGW(fmt, ##args)
+#define FAVORITES_LOGE(fmt, args...) LOGE(fmt, ##args)
+#define FAVORITES_LOGE_IF(cond, fmt, args...) LOGE_IF(cond, fmt, ##args)
 
 /**********************************************
  * Argument checking macro
@@ -122,6 +112,9 @@ int _get_exists_bookmark(const char *address);
 int _get_exists_folder(const char *title, int parent_id);
 int _get_bookmark_id(const char *address);
 int _get_folder_id(const char *title, const int parent);
+int _get_count_by_folder(int parent_id);
+int _get_list_by_folder(int parent_id, bookmark_list_h *list);
+int _set_full_tree_to_html_recur(int parent_id, FILE *fp, int depth);
 
 /* history internal API */
 void _favorites_history_db_close(void);

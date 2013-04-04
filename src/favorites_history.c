@@ -86,7 +86,8 @@ int favorites_history_get_count(int *count)
 			       "select count(*) from history",
 			       -1, &stmt, NULL);
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed(%s).\n",
+			sqlite3_errmsg(gl_internet_history_db));
 		_favorites_history_db_finalize(stmt);
 		return FAVORITES_ERROR_DB_FAILED;
 	}
@@ -118,7 +119,8 @@ int favorites_history_foreach(favorites_history_foreach_cb callback,void *user_d
 			       -1, &stmt, NULL);
 
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE ("sqlite3_prepare_v2 is failed.\n");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed(%s).\n",
+			sqlite3_errmsg(gl_internet_history_db));
 		_favorites_history_db_finalize(stmt);
 		return FAVORITES_ERROR_DB_FAILED;
 	}
@@ -188,7 +190,8 @@ int favorites_history_delete_history(int id)
 	nError = sqlite3_prepare_v2(gl_internet_history_db,
 			        "delete from history where id=?", -1, &stmt, NULL);
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed(%s).\n",
+			sqlite3_errmsg(gl_internet_history_db));
 		_favorites_history_db_finalize(stmt);
 		return FAVORITES_ERROR_DB_FAILED;
 	}
@@ -226,7 +229,8 @@ int favorites_history_delete_history_by_url(const char *url)
 	nError = sqlite3_prepare_v2(gl_internet_history_db,
 			        "delete from history where address=?", -1, &stmt, NULL);
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed(%s).\n",
+			sqlite3_errmsg(gl_internet_history_db));
 		_favorites_history_db_finalize(stmt);
 		return FAVORITES_ERROR_DB_FAILED;
 	}
@@ -257,7 +261,8 @@ int favorites_history_delete_all_histories(void)
 	nError = sqlite3_prepare_v2(gl_internet_history_db,
 			        "delete from history", -1, &stmt, NULL);
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed(%s).\n",
+			sqlite3_errmsg(gl_internet_history_db));
 		_favorites_history_db_finalize(stmt);
 		return FAVORITES_ERROR_DB_FAILED;
 	}
@@ -301,7 +306,8 @@ int favorites_history_delete_history_by_term(const char *begin, const char *end)
 			        query, -1, &stmt, NULL);
 
 	if (nError != SQLITE_OK) {
-		FAVORITES_LOGE("sqlite3_prepare_v2 is failed.\n");
+		FAVORITES_LOGE("sqlite3_prepare_v2 is failed(%s).\n",
+			sqlite3_errmsg(gl_internet_history_db));
 		_favorites_history_db_finalize(stmt);
 		return FAVORITES_ERROR_DB_FAILED;
 	}
