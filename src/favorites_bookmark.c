@@ -471,6 +471,7 @@ bookmark_list_h _favorites_bookmark_get_folder_list(void)
 	}
 	FAVORITES_LOGE("sqlite3_step is failed");
 	_favorites_finalize_bookmark_db(stmt);
+	_favorites_free_bookmark_list(m_list);
 	return NULL;
 }
 
@@ -1341,8 +1342,10 @@ int _set_full_tree_to_html_recur(int parent_id, FILE *fp, int depth)
 
 	int ret = _get_list_by_folder(parent_id, &child_list);
 
-	if (ret != FAVORITES_ERROR_NONE)
+	if (ret != FAVORITES_ERROR_NONE) {
+		_favorites_free_bookmark_list(child_list);
 		return FAVORITES_ERROR_DB_FAILED;
+	}
 
 	int i = 0;
 	int j = 0;
