@@ -1,6 +1,6 @@
 Name:       capi-web-favorites
 Summary:    Internet bookmark and history API
-Version:    0.0.14
+Version:    0.0.15
 Release:    1
 Group:      TO_BE/FILLED_IN
 License:    Apache License, Version 2.0
