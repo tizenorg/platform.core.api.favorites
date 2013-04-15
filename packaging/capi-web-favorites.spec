@@ -121,7 +121,7 @@ fi
 vconftool set -t string db/browser/browser_user_agent "System user agent" -g 5000 -f
 vconftool set -t string db/browser/custom_user_agent "" -g 5000 -f
 #public keys
-vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; U; Tizen 2.0; en-us) AppleWebKit/537.1 (KHTML, like Gecko) Version/2.0 Mobile" -g 5000 -f
+vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; Tizen 2.1; sdk) AppleWebKit/537.3 (KHTML, like Gecko) Version/2.1 Mobile Safari/537.3" -g 5000 -f
 
 %postun -p /sbin/ldconfig
 
