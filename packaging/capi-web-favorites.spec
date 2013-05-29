@@ -109,7 +109,7 @@ chmod 666 /opt/usr/dbspace/.browser-history.db-journal
 chmod 666 /opt/usr/dbspace/.internet_bookmark.db
 chmod 666 /opt/usr/dbspace/.internet_bookmark.db-journal
 
-if [ -f /usr/lib/rpm-plugins/msm.so ]
+if [ -f %{_libdir}/rpm-plugins/msm.so ]
 then
 	chsmack -a 'org.tizen.browser::db_external' /opt/usr/dbspace/.browser-history.db*
 	chsmack -a 'org.tizen.browser::db_external' /opt/usr/dbspace/.internet_bookmark.db*
