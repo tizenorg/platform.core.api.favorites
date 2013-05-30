@@ -1,0 +1,8 @@
+Change-Id: I783daf794fd93cc6d26d1508bc69c063f2e25f4d
+Code-Review+2: Anas Nashif
+Verified+1: Xavier Roche <xavier.roche@eurogiciel.fr>
+Submitted-by: Xavier Roche <xavier.roche@eurogiciel.fr>
+Submitted-at: Thu, 30 May 2013 01:48:23 -0700
+Reviewed-on: https://review.tizen.org/gerrit/3735
+Project: platform/core/api/favorites
+Branch: refs/heads/tizen
