@@ -5,6 +5,7 @@ Release:    1
 Group:      TO_BE/FILLED_IN
 License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: 	capi-web-favorites.manifest
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(db-util)
@@ -27,6 +28,7 @@ Requires: %{name} = %{version}-%{release}
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 
 %build
@@ -121,9 +123,10 @@ vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; Tizen 2.1; sd
 
 
 %files
-%manifest capi-web-favorites.manifest
+%manifest %{name}.manifest
 %{_libdir}/libcapi-web-favorites.so
 
 %files devel
+%manifest %{name}.manifest
 %{_includedir}/web/*.h
 %{_libdir}/pkgconfig/*.pc
