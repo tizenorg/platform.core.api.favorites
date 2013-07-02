@@ -111,11 +111,11 @@ chmod 666 /opt/usr/dbspace/.browser-history.db-journal
 chmod 666 /opt/usr/dbspace/.internet_bookmark.db
 chmod 666 /opt/usr/dbspace/.internet_bookmark.db-journal
 
-if [ -f %{_libdir}/rpm-plugins/msm.so ]
-then
+#if [ -f %{_libdir}/rpm-plugins/msm.so ]
+#then
 #	chsmack -a 'org.tizen.browser::db_external' /opt/usr/dbspace/.browser-history.db*
 #	chsmack -a 'org.tizen.browser::db_external' /opt/usr/dbspace/.internet_bookmark.db*
-fi
+#fi
 ##################################################
 # set default vconf values
 ##################################################
