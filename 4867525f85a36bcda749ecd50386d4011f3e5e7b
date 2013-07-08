@@ -1,0 +1,10 @@
+Change-Id: I4867525f85a36bcda749ecd50386d4011f3e5e7b
+Code-Review+2: Ryan Ware <ware@linux.intel.com>
+Verified+1: Ryan Ware <ware@linux.intel.com>
+Code-Review+1: Elena Reshetova <elena.reshetova@intel.com>
+Verified+1: Elena Reshetova <elena.reshetova@intel.com>
+Submitted-by: Ryan Ware <ware@linux.intel.com>
+Submitted-at: Mon, 08 Jul 2013 09:36:20 -0700
+Reviewed-on: https://review.tizen.org/gerrit/5433
+Project: platform/core/api/favorites
+Branch: refs/heads/tizen
