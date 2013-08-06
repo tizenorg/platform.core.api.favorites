@@ -2,8 +2,8 @@ Name:       capi-web-favorites
 Summary:    Internet bookmark and history API
 Version:    0.0.15
 Release:    1
-Group:      TO_BE/FILLED_IN
-License:    Apache License, Version 2.0
+Group:      Web Framework/API
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1001: 	capi-web-favorites.manifest
 BuildRequires:  cmake
@@ -15,16 +15,15 @@ Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
 %description
-
+API for Internet Bookmarks and History
 
 %package devel
 Summary:  Internet Bookmark and History in Tizen Native API (Development)
-Group:    TO_BE/FILLED_IN
+Group:    Web Framework/Development
 Requires: %{name} = %{version}-%{release}
 
 %description devel
-
-
+Development package for favorites API. Favorites API provides teh framework for bookmarks and history
 
 %prep
 %setup -q
