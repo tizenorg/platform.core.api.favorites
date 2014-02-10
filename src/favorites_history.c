@@ -17,12 +17,16 @@
 #include <string.h>
 #include <dlog.h>
 #include <db-util.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <favorites.h>
 #include <favorites_private.h>
+#include <tzplatform_config.h>
 
 sqlite3 *gl_internet_history_db = 0;
 
-#define INTERNET_HISTORY_DB_NAME "/opt/usr/dbspace/.browser-history.db"
+#define INTERNET_HISTORY_DB_NAME tzplatform_mkpath(TZ_USER_DB,".browser-history.db")
+#define SCRIPT_INIT_INTERNET_HISTORY_DB	tzplatform_mkpath(TZ_SYS_SHARE, "capi-web-favorites/browser_history_DB_init.sh")
 
 /* Private Functions */
 void _favorites_history_db_close(void)
@@ -43,6 +47,22 @@ void _favorites_history_db_finalize(sqlite3_stmt *stmt)
 }
 int _favorites_history_db_open(void)
 {
+
+	// init of db
+	struct stat sts;
+	int ret;
+
+	/* Check if the DB exists; if not, create it and initialize it */
+	ret = stat(INTERNET_HISTORY_DB_NAME, &sts);
+	if (ret == -1 && errno == ENOENT)
+	{
+		ret = system(SCRIPT_INIT_INTERNET_HISTORY_DB);
+		if (ret){
+			FAVORITES_LOGE(" _favorites_history_db_open error with %",SCRIPT_INIT_INTERNET_HISTORY_DB);
+		}
+	}
+
+
 	_favorites_history_db_close();
 	if (db_util_open
 	    (INTERNET_HISTORY_DB_NAME, &gl_internet_history_db,

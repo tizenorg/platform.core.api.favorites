@@ -19,10 +19,16 @@
 #include <db-util.h>
 #include <favorites.h>
 #include <favorites_private.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <tzplatform_config.h>
 #if defined(BROWSER_BOOKMARK_SYNC)
 #include "bookmark-adaptor.h"
 #include "time.h"
 #endif
+
+#define INTERNET_BOOKMARK_DB			tzplatform_mkpath(TZ_USER_DB,".internet_bookmark.db")
+#define SCRIPT_INIT_INTERNET_BOOKMARK_DB	tzplatform_mkpath(TZ_SYS_SHARE, "capi-web-favorites/internet_bookmark_DB_init.sh")
 
 sqlite3 *gl_internet_bookmark_db = 0;
 
@@ -47,7 +53,22 @@ void _favorites_finalize_bookmark_db(sqlite3_stmt *stmt)
 }
 const char *_favorites_get_bookmark_db_name(void)
 {
-	return "/opt/usr/dbspace/.internet_bookmark.db";
+
+	// init of db
+	struct stat sts;
+	int ret;
+
+	/* Check if the DB exists; if not, create it and initialize it */
+	ret = stat(INTERNET_BOOKMARK_DB, &sts);
+	if (ret == -1 && errno == ENOENT)
+	{
+		ret = system(SCRIPT_INIT_INTERNET_BOOKMARK_DB);
+		if (ret){
+			FAVORITES_LOGE("_favorites_get_bookmark_db_name error with %",SCRIPT_INIT_INTERNET_BOOKMARK_DB);
+		}
+	}
+
+	return INTERNET_BOOKMARK_DB;
 }
 int _favorites_open_bookmark_db(void)
 {
