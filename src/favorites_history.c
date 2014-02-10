@@ -17,12 +17,18 @@
 #include <string.h>
 #include <dlog.h>
 #include <db-util.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include <favorites.h>
 #include <favorites_private.h>
+#include <tzplatform_config.h>
+
 
 sqlite3 *gl_internet_history_db = 0;
 
-#define INTERNET_HISTORY_DB_NAME "/opt/usr/dbspace/.browser-history.db"
+#define INTERNET_HISTORY_DB_NAME tzplatform_mkpath(TZ_USER_DB,".browser-history.db")
+#define SCRIPT_INIT_INTERNET_HISTORY_DB	tzplatform_mkpath(TZ_SYS_SHARE, "capi-web-favorites/browser_history_DB_init.sh")
 
 /* Private Functions */
 void _favorites_history_db_close(void)
@@ -41,8 +47,54 @@ void _favorites_history_db_finalize(sqlite3_stmt *stmt)
 	}
 	_favorites_history_db_close();
 }
+
+int _xsystem(const char *argv[])
+{
+	int status = 0;
+	pid_t pid;
+	pid = fork();
+	switch (pid) {
+	case -1:
+		perror("fork failed");
+		return -1;
+	case 0:
+		/* child */
+		execvp(argv[0], (char *const *)argv);
+		_exit(-1);
+	default:
+		/* parent */
+		break;
+	}
+	if (waitpid(pid, &status, 0) == -1) {
+		perror("waitpid failed");
+		return -1;
+	}
+	if (WIFSIGNALED(status)) {
+		perror("signal");
+		return -1;
+	}
+	if (!WIFEXITED(status)) {
+		/* shouldn't happen */
+		perror("should not happen");
+		return -1;
+	}
+	return WEXITSTATUS(status);
+}
+
 int _favorites_history_db_open(void)
 {
+
+	// init of db
+	struct stat sts;
+	int ret;
+
+	/* Check if the DB exists; if not, create it and initialize it */
+	ret = stat(INTERNET_HISTORY_DB_NAME, &sts);
+	if (ret == -1 && errno == ENOENT){
+		const char *argv_script[] = {"/bin/sh", SCRIPT_INIT_INTERNET_HISTORY_DB, NULL };
+		ret = _xsystem(argv_script);
+	}
+
 	_favorites_history_db_close();
 	if (db_util_open
 	    (INTERNET_HISTORY_DB_NAME, &gl_internet_history_db,

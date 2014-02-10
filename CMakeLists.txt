@@ -16,7 +16,7 @@ SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(INC_DIR include)
 INCLUDE_DIRECTORIES(${INC_DIR})
 
-SET(requires "db-util dlog sqlite3 evas capi-base-common")
+SET(requires "db-util dlog sqlite3 evas capi-base-common libtzplatform-config")
 SET(pc_requires "capi-base-common")
 
 INCLUDE(FindPkgConfig)
@@ -66,6 +66,8 @@ CONFIGURE_FILE(
     @ONLY
 )
 INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${fw_name}.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/internet_bookmark_DB_init.sh DESTINATION ${SHARE_INSTALL_PREFIX}/${fw_name})
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/browser_history_DB_init.sh DESTINATION ${SHARE_INSTALL_PREFIX}/${fw_name})
 
 IF(UNIX)
 
