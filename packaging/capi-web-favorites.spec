@@ -11,6 +11,7 @@ BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(db-util)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(capi-base-common)
+BuildRequires:  pkgconfig(libtzplatform-config)
 Requires(post): /sbin/ldconfig  
 Requires(postun): /sbin/ldconfig
 
@@ -31,7 +32,7 @@ cp %{SOURCE1001} .
 
 
 %build
-%cmake .
+%cmake . -DTZ_SYS_SHARE=%TZ_SYS_SHARE
 make %{?jobs:-j%jobs}
 
 %install
@@ -39,84 +40,17 @@ make %{?jobs:-j%jobs}
 
 %post
 /sbin/ldconfig
-mkdir -p /opt/usr/dbspace/
-##### History ######
-if [ ! -f /opt/usr/dbspace/.browser-history.db ];
-then
-	sqlite3 /opt/usr/dbspace/.browser-history.db 'PRAGMA journal_mode=PERSIST;
-	CREATE TABLE history(
-		id INTEGER PRIMARY KEY AUTOINCREMENT
-		, address
-		, title
-		, counter INTEGER
-		, visitdate DATETIME
-		, favicon BLOB
-		, favicon_length INTEGER
-		, favicon_w INTEGER
-		, favicon_h INTEGER
-		, snapshot BLOB
-		, snapshot_stride INTEGER
-		, snapshot_w INTEGER
-		, snapshot_h INTEGER);'
-fi
 
-### Bookmark ###
-if [ ! -f /opt/usr/dbspace/.internet_bookmark.db ];
-then
-	sqlite3 /opt/usr/dbspace/.internet_bookmark.db 'PRAGMA journal_mode=PERSIST;
-	CREATE TABLE bookmarks(
-		id INTEGER PRIMARY KEY AUTOINCREMENT
-		,type INTEGER
-		,parent INTEGER
-		,address
-		,title
-		,creationdate
-		,sequence INTEGER
-		,updatedate
-		,visitdate
-		,editable INTEGER
-		,accesscount INTEGER
-		,favicon BLOB
-		,favicon_length INTEGER
-		,favicon_w INTEGER
-		,favicon_h INTEGER
-		,created_date
-		,account_name
-		,account_type
-		,thumbnail BLOB
-		,thumbnail_length INTEGER
-		,thumbnail_w INTEGER
-		,thumbnail_h INTEGER
-		,version INTEGER
-		,sync
-		,tag1
-		,tag2
-		,tag3
-		,tag4
-	);
-	create index idx_bookmarks_on_parent_type on bookmarks(parent, type);
-
-	CREATE TABLE tags(
-		tag
-	);'
-fi
-# Change db file owner & permission
-chown :5000 /opt/usr/dbspace/.browser-history.db
-chown :5000 /opt/usr/dbspace/.browser-history.db-journal
-chown :5000 /opt/usr/dbspace/.internet_bookmark.db
-chown :5000 /opt/usr/dbspace/.internet_bookmark.db-journal
-chmod 666 /opt/usr/dbspace/.browser-history.db
-chmod 666 /opt/usr/dbspace/.browser-history.db-journal
-chmod 666 /opt/usr/dbspace/.internet_bookmark.db
-chmod 666 /opt/usr/dbspace/.internet_bookmark.db-journal
+source /etc/tizen-platform.conf
+users_gid=$(getent group $TZ_SYS_USER_GROUP | cut -f3 -d':')
 
 # set default vconf values
 ##################################################
 #internal keys
-vconftool set -t string db/browser/browser_user_agent "System user agent" -g 5000 -f
-vconftool set -t string db/browser/custom_user_agent "" -g 5000 -f
+vconftool set -t string db/browser/browser_user_agent "System user agent" -g $users_gid -f
+vconftool set -t string db/browser/custom_user_agent "" -g $users_gid -f
 #public keys
-vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; Tizen 2.1; sdk) AppleWebKit/537.3 (KHTML, like Gecko) Version/2.1 Mobile Safari/537.3" -g 5000 -f
+vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; Tizen 2.1; sdk) AppleWebKit/537.3 (KHTML, like Gecko) Version/2.1 Mobile Safari/537.3" -g $users_gid -f
 
 %postun -p /sbin/ldconfig
 
@@ -124,6 +58,8 @@ vconftool set -t string db/browser/user_agent "Mozilla/5.0 (Linux; Tizen 2.1; sd
 %files
 %manifest %{name}.manifest
 %{_libdir}/libcapi-web-favorites.so
+%attr(0755,root,%TZ_SYS_USER_GROUP) %TZ_SYS_SHARE/%{name}/internet_bookmark_DB_init.sh
+%attr(0755,root,%TZ_SYS_USER_GROUP) %TZ_SYS_SHARE/%{name}/browser_history_DB_init.sh
 
 %files devel
 %manifest %{name}.manifest

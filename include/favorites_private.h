@@ -122,6 +122,8 @@ void _favorites_history_db_finalize(sqlite3_stmt *stmt);
 int _favorites_history_db_open(void);
 int _favorites_free_history_entry(favorites_history_entry_s *entry);
 
+int _xsystem(const char *argv[]);
+
 #ifdef __cplusplus
 };
 #endif
