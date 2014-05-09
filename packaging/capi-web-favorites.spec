@@ -110,6 +110,9 @@ chmod 666 /opt/usr/dbspace/.browser-history.db-journal
 chmod 666 /opt/usr/dbspace/.internet_bookmark.db
 chmod 666 /opt/usr/dbspace/.internet_bookmark.db-journal
 
+chsmack -a 'User' /opt/usr/dbspace/.browser-history.db*
+chsmack -a 'User' /opt/usr/dbspace/.internet_bookmark.db*
+
 # set default vconf values
 ##################################################
 #internal keys
