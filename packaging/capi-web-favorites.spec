@@ -44,6 +44,9 @@ make %{?jobs:-j%jobs}
 source /etc/tizen-platform.conf
 users_gid=$(getent group $TZ_SYS_USER_GROUP | cut -f3 -d':')
 
+chsmack -a 'User' /opt/usr/dbspace/.browser-history.db*
+chsmack -a 'User' /opt/usr/dbspace/.internet_bookmark.db*
+
 # set default vconf values
 ##################################################
 #internal keys
